@@ -1,4 +1,3 @@
-# variable_resolution_form_months_space_predictors
 # example = 'pr_5x5_std_MJJ_thailand_ ***|*** mrso_snc_tos_tsl.npy' 
 # boxplot: x = year, y= diviation of monthly rainfall
 # boxplot: close up only 1850, 1900, 1950, 2000
