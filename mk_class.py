@@ -18,19 +18,51 @@ def main():
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/one/1x1/pr_1x1_std_MJJASO_one.npy'
     thailand_path = workdir + '/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
+    one_save = workdir + '/class/one/1x1/pr_1x1_std_MJJASO_one.npy'
+    thailand_save = workdir + '/class/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
 
     one = load(one_path)
-    one_flat = one.reshape(42*165)
     thailand = load(thailand_path)
+
+    one_class, one_bnd = one_EFD(one, class_num=5)
+    print(f"one_bnd: {one_bnd}")
+    save_npy(one_save, one_class, save_flag=True)
 
     thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=5)
     print(f"thailand_bnd: {thailand_bnd}")
+    save_npy(thailand_save, thailand_class, save_flag=True)
     show_class(thailand_class[0,0,:,:], class_num=5)
 
 def load(path):
     print(f"path existance: {exists(path)}")
     npy = np.load(path)
     return npy
+
+def save_npy(path, data, save_flag=False):
+    if save_flag is True:
+        np.save(path, data)
+        print(f"class_output has been SAVED")
+    else:
+        print(f"class_output is ***NOT*** saved yet")
+
+def one_EFD(data, class_num=5):
+    mjjaso_one = data.copy() # data=(42, 165)
+    one_flat = mjjaso_one.reshape(42*165)
+    flat_sorted = np.sort(one_flat)
+    if len(flat_sorted)%class_num != 0:
+        print('class_num is wrong')
+    else:
+        batch_sample = int(len(flat_sorted)/class_num)
+
+    bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
+    bnd.append(flat_sorted[-1])
+    bnd = np.array(bnd)
+    one_class = np.empty(len(one_flat))
+    for i, value in enumerate(one_flat):
+        label = bisect.bisect(bnd, value)
+        one_class[i] = int(label - 1)
+    one_class.reshape(42, 165)
+    return one_class, bnd
 
 def thailand_EFD(data, class_num=5): # not-flattened input data required
     # EFD_bnd
