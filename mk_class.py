@@ -1,115 +1,139 @@
-# class[4, 10, 100], type[one, thailand], month[S, MJJASO], resolution[1x1, 5x5]
+# combinations:
+# {'class': [5, 10, 100],
+#  'type': [one, thailand],
+#  'month': [S, MJJASO],
+#  'resolution': [1x1, 5x5],
+#  'discrete': [EFD, EWD]} => 24*2
+# try (5, one, MJJASO, 1x1, EFD) & (5, thailand, MJJASO, 5x5, EFD) => 2
 
+import bisect
 import numpy as np
+from os.path import exists
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import cartopy.crs as ccrs
 
 def main():
-    print('test')
-
-def lead_cnd(leadtime):
-    if leadtime == 1:
-        mon_arr = np.array([[4,5], [5,6], [6,7], [7,8], [8,9], [9,10]])
-        llst = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct']
-    elif leadtime == 3:
-        mon_arr = np.array([[4,7], [5,8], [6,9], [7,10]])
-        llst = ['MJJ', 'JJA', 'JAS', 'ASO']
-    elif leadtime == 6:
-        mon_arr = np.array([[4,10]])
-        llst = ['MJJASO']
-    else:
-        print('error of lead_cnd')
-        exit()
-    return mon_arr, llst
-
-def space_cnd(leadtime, inp):
-    if leadtime == 1:
-        out = np.mean(inp, axis=2)
-    elif leadtime == 3 or leadtime==6:
-        out = np.mean(inp, axis=2)
-    else:
-        print('error of space_cnd')
-        exit()
-    return out
-
-def pr_1x1():
-    workdir = '/work/kajiyama/cnn/input/pr/class'
-
-    resolution = '1x1'
-    lat_lst = [7*5, 11*5]
-    lon_lst = [18*5, 22*5]
-    form_lst = ['raw', 'anom', 'std']
-    msk = 20
-
-    variable = 'pr'
-    lead_lst = [1, 3, 6]
-    space_lst = ['one', 'thailand', 'world']
-    model_num = 42
-    year_num = 165
-
-    for form in form_lst:
-        ifile = f"{workdir}/main/{variable}_{form}.npy"
-        loaded = np.load(ifile)
-        print(f"{ifile} is loaded")
-
-        for leadtime in lead_lst:
-            mon_arr, llst = lead_cnd(leadtime)
-            for i, months in enumerate(llst):
-                for space in space_lst:
-
-                    if space == 'one':
-                        one = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(one.reshape(model_num, year_num, leadtime*msk*msk), axis=2)
-
-                    elif space == 'thailand':
-                        thailand = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(thailand, axis=2)
-
-                    elif space == 'world':
-                        world = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], :, :]
-                        out = np.mean(world, axis=2)
-
-                    ofile = f"{workdir}/{variable}_{resolution}_{form}_{months}_{space}.npy"
-                    np.save(ofile, out)
-                    print(f"{ofile} is saved {out.shape}")
-
-def pr_5x5():
     workdir = '/work/kajiyama/cnn/input/pr'
+    one_path = workdir + '/one/1x1/pr_1x1_std_MJJASO_one.npy'
+    thailand_path = workdir + '/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
 
-    resolution = '5x5'
-    lat_lst = [7, 11]
-    lon_lst = [18, 22]
-    form_lst = ['coarse', 'coarse_anom', 'coarse_std']
-    msk = 4
+    one = load(one_path)
+    one_flat = one.reshape(42*165)
+    thailand = load(thailand_path)
 
-    variable = 'pr'
-    lead_lst = [1, 3, 6]
-    space_lst = ['one', 'thailand', 'world']
-    model_num = 42
-    year_num = 165
+    thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=5)
+    print(f"thailand_bnd: {thailand_bnd}")
+    show_class(thailand_class[0,0,:,:], class_num=5)
 
-    for form in form_lst:
-        ifile = f"{workdir}/main/{variable}_{form}.npy"
-        loaded = np.load(ifile)
+def load(path):
+    print(f"path existance: {exists(path)}")
+    npy = np.load(path)
+    return npy
 
-        for leadtime in lead_lst:
-            mon_arr, llst = lead_cnd(leadtime)
-            for i, months in enumerate(llst):
-                for space in space_lst:
+def thailand_EFD(data, class_num=5): # not-flattened input data required
+    # EFD_bnd
+    mjjaso_thailand = data.copy() # data=(42, 165, 4, 4)
+    thailand_flat = mjjaso_thailand.reshape(42*165*4*4)
+    flat_sorted = np.sort(thailand_flat)
+    if len(flat_sorted)%class_num != 0:
+        print('class_num is wrong')
+    else:
+        batch_sample = int(len(flat_sorted)/class_num)
 
-                    if space == 'one':
-                        one = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(one.reshape(model_num, year_num, leadtime*msk*msk), axis=2)
+    bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
+    bnd.append(flat_sorted[-1])
+    bnd = np.array(bnd)
 
-                    elif space == 'thailand':
-                        thailand = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(thailand, axis=2)
+    # EFD_trans
+    thailand_class = np.empty(mjjaso_thailand.shape)
+    for lat in  range(4):
+        for lon in range(4):
+            grid = mjjaso_thailand[:,:,lat,lon].reshape(42*165)
+            grid_class = np.empty(len(grid))
+            for i, value in enumerate(grid):
+                label = bisect.bisect(bnd, value)
+                grid_class[i] = int(label - 1)
+            grid_class = grid_class.reshape(42, 165)
+            thailand_class[:,:,lat,lon] = grid_class
+    return thailand_class, bnd
 
-                    elif space == 'world':
-                        world = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], :, :]
-                        out = np.mean(world, axis=2)
+def EFD(data, class_num=5):
+    out = data.copy() # data=(6930)
+    out_sorted = np.sort(out)
+    if len(data)%class_num != 0:
+        print('class-num is wrong')
+    else:
+        batch_sample = int(len(data)/class_num)
 
-                    ofile = f"{workdir}/{variable}_{resolution}_{form}_{months}_{space}.npy"
-                    np.save(ofile, out)
-                    print(f"{ofile} is saved {out.shape}")
+    out_bnd = [out_sorted[i] for i in range(0, len(out_sorted), batch_sample)]
+    out_class = np.empty(len(out_sorted))
+    for i, value in enumerate(out):
+        label = bisect.bisect(out_bnd, value)
+        out_class[i] = int(label-1)
+
+    out_bnd.append(out_sorted[-1])
+    out_bnd = np.array(out_bnd)
+    u, counts = np.unique(out_class, return_counts=True)
+    return out_class, out_bnd # out_class=(6930), out_bnd=(class_num+1)
+
+def EWD(data, class_num=5):
+    out = data.copy() # data=(6930)
+    lim = max(abs(max(data)), abs(min(data)))
+    dx = 2*lim/class_num
+
+    out_bnd = []
+    out_bnd.append(-lim)
+    out_bnd.append(lim)
+    if class_num%2 == 0:
+        origin = 0
+        out_bnd.append(origin)
+    else:
+        origin = dx/2
+        out_bnd.append(origin)
+        out_bnd.append(-origin)
+
+    loop_num = int(class_num/2)
+    for i in range(loop_num):
+        out_bnd.append(origin+dx*(i+1))
+        out_bnd.append(-origin-dx*(i+1))
+    out_bnd = np.sort(out_bnd)
+
+    out_class = np.empty(len(out))
+    for i, value in enumerate(out):
+        label = bisect.bisect(out_bnd, value) # giving label
+        out_class[i] = int(label - 1)
+    out_bnd = np.array(out_bnd)
+
+    u, counts = np.unique(out_class, return_counts=True)
+    return out_class, out_bnd # out_class=(6930), out_bnd=(class_num+1)
+
+def draw_disc(data, bnd_list):
+    fig = plt.figure()
+    ax = plt.subplot()
+    ax.hist(data, bins=1000, alpha=.5, color='darkcyan')
+    for i in bnd_list:
+        ax.axvline(i, ymin=0, ymax=len(data), alpha=.8, color='salmon')
+    plt.show()
+
+def show_class(image, class_num=5):
+    cmap = plt.cm.get_cmap('BrBG', class_num)
+    bounds = [i - 0.5 for i in range(class_num+1)]
+    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    ticks = [i for i in range(class_num)]
+
+    projection = ccrs.PlateCarree(central_longitude=180)
+    img_extent = (-90, -70, 5, 25) # location=(N5-25, E90-110)
+
+    fig = plt.figure()
+    ax = plt.subplot(projection=projection)
+    ax.coastlines()
+    mat = ax.matshow(image, origin='upper', extent=img_extent, transform=projection, norm=norm, cmap=cmap)
+    cbar = fig.colorbar(mat, ax=ax, extend='both', ticks=ticks, spacing='proportional', orientation='vertical')
+    cbar.ax.set_yticklabels(['low', 'mid-low', 'normal', 'mid-high', 'high'])
+    plt.show()
+
 
 if __name__ == '__main__':
     main()
