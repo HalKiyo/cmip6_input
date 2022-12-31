@@ -15,23 +15,26 @@ import matplotlib.colors as colors
 import cartopy.crs as ccrs
 
 def main():
+    save_flag = False
+    discrete_mode = 'EFD'
+    class_num = 5
     workdir = '/work/kajiyama/cnn/input/pr'
-    one_path = workdir + '/one/1x1/pr_1x1_std_MJJASO_one.npy'
-    thailand_path = workdir + '/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
-    one_save = workdir + '/class/one/1x1/pr_1x1_std_MJJASO_one.npy'
-    thailand_save = workdir + '/class/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
+    one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
+    thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
+    one_save = workdir + f"/class/one/{discrete_mode}/pr_1x1_std_MJJASO_one_{class_num}.npy"
+    thailand_save = workdir + f"/class/thailand/{discrete_mode}/pr_5x5_coarse_std_MJJASO_thailand_{class_num}.npy"
 
     one = load(one_path)
     thailand = load(thailand_path)
 
-    one_class, one_bnd = one_EFD(one, class_num=5)
+    one_class, one_bnd = one_EFD(one, class_num=class_num)
     print(f"one_bnd: {one_bnd}")
-    save_npy(one_save, one_class, save_flag=True)
+    save_npy(one_save, one_class, save_flag=save_flag)
 
-    thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=5)
+    thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
     print(f"thailand_bnd: {thailand_bnd}")
-    save_npy(thailand_save, thailand_class, save_flag=True)
-    show_class(thailand_class[0,0,:,:], class_num=5)
+    save_npy(thailand_save, thailand_class, save_flag=save_flag)
+    show_class(thailand_class[0,0,:,:], class_num=class_num)
 
 def load(path):
     print(f"path existance: {exists(path)}")

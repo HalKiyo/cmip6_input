@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 
 def main():
-    bnd_lst = ['tsl']
+    bnd_lst = ['pr'] # choose variable you want to store
     for bnd in bnd_lst:
         mk_newarr(bnd)
 
