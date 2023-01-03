@@ -21,19 +21,21 @@ def main():
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
     thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
-    one_save = workdir + f"/class/one/{discrete_mode}/pr_1x1_std_MJJASO_one_{class_num}.npy"
-    thailand_save = workdir + f"/class/thailand/{discrete_mode}/pr_5x5_coarse_std_MJJASO_thailand_{class_num}.npy"
+    one_spath = workdir + f"/class/one/{discrete_mode}/pr_1x1_std_MJJASO_one_{class_num}.npy"
+    thailand_spath = workdir + f"/class/thailand/{discrete_mode}/pr_5x5_coarse_std_MJJASO_thailand_{class_num}.npy"
 
     one = load(one_path)
     thailand = load(thailand_path)
 
     one_class, one_bnd = one_EFD(one, class_num=class_num)
+    print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
     print(f"one_bnd: {one_bnd}")
-    save_npy(one_save, one_class, save_flag=save_flag)
+    save_npy(one_spath, one_class, save_flag=save_flag)
 
     thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
+    print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
     print(f"thailand_bnd: {thailand_bnd}")
-    save_npy(thailand_save, thailand_class, save_flag=save_flag)
+    save_npy(thailand_spath, thailand_class, save_flag=save_flag)
     show_class(thailand_class[0,0,:,:], class_num=class_num)
 
 def load(path):
@@ -58,7 +60,7 @@ def one_EFD(data, class_num=5):
         batch_sample = int(len(flat_sorted)/class_num)
 
     bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
-    bnd.append(flat_sorted[-1])
+    bnd.append(flat_sorted[-1]+1e-10) # max boundary must be a bit higher than real max
     bnd = np.array(bnd)
     one_class = np.empty(len(one_flat))
     for i, value in enumerate(one_flat):
@@ -78,7 +80,7 @@ def thailand_EFD(data, class_num=5): # not-flattened input data required
         batch_sample = int(len(flat_sorted)/class_num)
 
     bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
-    bnd.append(flat_sorted[-1])
+    bnd.append(flat_sorted[-1]+1e-10) # max boundary must be a bit higher than real max
     bnd = np.array(bnd)
 
     # EFD_trans
