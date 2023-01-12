@@ -17,7 +17,7 @@ import cartopy.crs as ccrs
 def main():
     save_flag = False
     discrete_mode = 'EFD'
-    class_num = 5
+    class_num = 30
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
     thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
@@ -168,7 +168,13 @@ def show_class(image, class_num=5):
     ax.coastlines()
     mat = ax.matshow(image, origin='upper', extent=img_extent, transform=projection, norm=norm, cmap=cmap)
     cbar = fig.colorbar(mat, ax=ax, extend='both', ticks=ticks, spacing='proportional', orientation='vertical')
-    cbar.ax.set_yticklabels(['low', 'mid-low', 'normal', 'mid-high', 'high'])
+    if class_num == 5:
+        cbar.ax.set_yticklabels(['low', 'mid-low', 'normal', 'mid-high', 'high'])
+    elif class_num == 10:
+        cbar.ax.set_yticklabels(['low', 'much-low', 'mid-low', 'little-low', 'normal',
+                                 'normal', 'little-high', 'mid-high', 'much-high', 'high'])
+    else:
+        pass
     plt.show()
 
 
