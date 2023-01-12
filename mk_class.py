@@ -1,5 +1,5 @@
 # combinations:
-# {'class': [5, 10, 100],
+# {'class': [5, 10, 30],
 #  'type': [one, thailand],
 #  'month': [S, MJJASO],
 #  'resolution': [1x1, 5x5],
@@ -16,29 +16,37 @@ import cartopy.crs as ccrs
 
 def main():
     save_flag = False
+    class_num = 90
     discrete_mode = 'EFD'
-    class_num = 30
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
     thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
-    one_spath = workdir + f"/class/one/{discrete_mode}/pr_1x1_std_MJJASO_one_{class_num}.npy"
-    thailand_spath = workdir + f"/class/thailand/{discrete_mode}/pr_5x5_coarse_std_MJJASO_thailand_{class_num}.npy"
+    one_spath = workdir + f"/class/one/{discrete_mode}" \
+                f"/pr_1x1_std_MJJASO_one_{discrete_mode}_{class_num}.npy"
+    thailand_spath = workdir + f"/class/thailand/{discrete_mode}" \
+                     f"/pr_5x5_coarse_std_MJJASO_thailand_{discrete_mode}_{class_num}.npy"
 
     one = load(one_path)
     thailand = load(thailand_path)
 
-    one_class, one_bnd = one_EFD(one, class_num=class_num)
-    print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
-    print(f"one_bnd: {one_bnd}")
-    save_npy(one_spath, one_class, save_flag=save_flag)
-    draw_disc(one.reshape(42*165), one_bnd)
+    if discrete_mode == 'EFD':
+        #one_EFD
+        one_class, one_bnd = one_EFD(one, class_num=class_num)
+        print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
+        print(f"one_bnd: {one_bnd}")
+        save_npy(one_spath, one_class, save_flag=save_flag)
+        draw_disc(one.reshape(42*165), one_bnd)
 
-    thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
-    print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
-    print(f"thailand_bnd: {thailand_bnd}")
-    save_npy(thailand_spath, thailand_class, save_flag=save_flag)
-    #draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
-    show_class(thailand_class[0,0,:,:], class_num=class_num)
+        #thailand_EFD
+        thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
+        print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
+        print(f"thailand_bnd: {thailand_bnd}")
+        save_npy(thailand_spath, thailand_class, save_flag=save_flag)
+        #draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
+        show_class(thailand_class[0,0,:,:], class_num=class_num)
+
+    elif discrete_mode == 'EWD':
+        pass
 
 def load(path):
     print(f"path existance: {exists(path)}")
@@ -149,6 +157,11 @@ def EWD(data, class_num=5):
     return out_class, out_bnd # out_class=(6930), out_bnd=(class_num+1)
 
 def draw_disc(data, bnd_list):
+    """
+    data shape must be one dimention,
+    if one has (42, 65) shape, convert it to 42*165
+    likewise, thailand has (42, 65, 4, 4), then convert it to 42*165*4*4
+    """
     fig = plt.figure()
     ax = plt.subplot()
     ax.hist(data, bins=1000, alpha=.5, color='darkcyan')
