@@ -16,8 +16,8 @@ import cartopy.crs as ccrs
 
 def main():
     save_flag = False
-    class_num = 90
-    discrete_mode = 'EFD'
+    class_num = 5
+    discrete_mode = 'EWD'
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
     thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
@@ -26,30 +26,37 @@ def main():
     thailand_spath = workdir + f"/class/thailand/{discrete_mode}" \
                      f"/pr_5x5_coarse_std_MJJASO_thailand_{discrete_mode}_{class_num}.npy"
 
-    one = load(one_path)
-    thailand = load(thailand_path)
+    one = load(one_path) # one=(42, 165)
+    thailand = load(thailand_path) # thailand=(42, 165, 4 , 4)
 
     if discrete_mode == 'EFD':
-        #one_EFD
+        # one_EFD
         one_class, one_bnd = one_EFD(one, class_num=class_num)
-        print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
         print(f"one_bnd: {one_bnd}")
         save_npy(one_spath, one_class, save_flag=save_flag)
-        draw_disc(one.reshape(42*165), one_bnd)
+        #draw_disc(one.reshape(42*165), one_bnd)
 
-        #thailand_EFD
+        # thailand_EFD
         thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
-        print(f"thailand_class: min_{min(one_class)}, max_{max(one_class)}")
         print(f"thailand_bnd: {thailand_bnd}")
         save_npy(thailand_spath, thailand_class, save_flag=save_flag)
         #draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
-        show_class(thailand_class[0,0,:,:], class_num=class_num)
+        #show_class(thailand_class[0,0,:,:], class_num=class_num)
 
     elif discrete_mode == 'EWD':
-        pass
+        # one_EFD
+        one_class, one_bnd = one_EWD(one, class_num=class_num)
+        save_npy(one_spath, one_class, save_flag=save_flag)
+        draw_disc(one.reshape(42*165), one_bnd)
+
+        #thailand_EWD
+        thailand_class, thailand_bnd = thailand_EWD(thailand, class_num=class_num)
+        save_npy(thailand_spath, thailand_class, save_flag=save_flag)
+        draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
+        show_class(thailand_class[0,0,:,:], class_num=class_num)
 
 def load(path):
-    print(f"path existance: {exists(path)}")
+    print(f"{path}: exist?=> {exists(path)}")
     npy = np.load(path)
     return npy
 
@@ -93,7 +100,7 @@ def thailand_EFD(data, class_num=5): # not-flattened input data required
     bnd.append(flat_sorted[-1]+1e-10) # max boundary must be a bit higher than real max
     bnd = np.array(bnd)
 
-    # EFD_trans
+    # EFD_conversion
     thailand_class = np.empty(mjjaso_thailand.shape)
     for lat in  range(4):
         for lon in range(4):
@@ -106,55 +113,97 @@ def thailand_EFD(data, class_num=5): # not-flattened input data required
             thailand_class[:,:,lat,lon] = grid_class
     return thailand_class, bnd
 
-def EFD(data, class_num=5):
-    out = data.copy() # data=(6930)
-    out_sorted = np.sort(out)
-    if len(data)%class_num != 0:
-        print('class-num is wrong')
-    else:
-        batch_sample = int(len(data)/class_num)
-
-    out_bnd = [out_sorted[i] for i in range(0, len(out_sorted), batch_sample)]
-    out_class = np.empty(len(out_sorted))
-    for i, value in enumerate(out):
-        label = bisect.bisect(out_bnd, value)
-        out_class[i] = int(label-1)
-
-    out_bnd.append(out_sorted[-1])
-    out_bnd = np.array(out_bnd)
-    u, counts = np.unique(out_class, return_counts=True)
-    return out_class, out_bnd # out_class=(6930), out_bnd=(class_num+1)
-
-def EWD(data, class_num=5):
-    out = data.copy() # data=(6930)
-    lim = max(abs(max(data)), abs(min(data)))
+def one_EWD(data, class_num=5):
+    mjjaso_one = data.copy() # data=(42, 165)
+    one_flat = mjjaso_one.reshape(42*165)
+    lim = max(abs(max(one_flat)), abs(min(one_flat)))
     dx = 2*lim/class_num
 
-    out_bnd = []
-    out_bnd.append(-lim)
-    out_bnd.append(lim)
+    bnd = []
+    bnd.append(-lim-1e-10) # min boundary must be a bit lower than real min
+    bnd.append(lim+1e-10) # max boundary must be a bit higher than real max
+
+    # even or odd
     if class_num%2 == 0:
         origin = 0
-        out_bnd.append(origin)
+        bnd.append(origin)
     else:
         origin = dx/2
-        out_bnd.append(origin)
-        out_bnd.append(-origin)
+        bnd.append(origin)
+        bnd.append(-origin)
 
-    loop_num = int(class_num/2)
-    for i in range(loop_num):
-        out_bnd.append(origin+dx*(i+1))
-        out_bnd.append(-origin-dx*(i+1))
-    out_bnd = np.sort(out_bnd)
+    # EWD_bnd
+    if class_num == 4 or class_num == 5:
+        bnd.append(origin+dx)
+        bnd.append(-origin-dx)
+    elif class_num >= 6:
+        loop_num = int(class_num/2)
+        for i in range(loop_num-1):
+            bnd.append(origin+dx*(i+1))
+            bnd.append(-origin-dx*(i+1))
+    bnd = np.sort(bnd)
 
-    out_class = np.empty(len(out))
-    for i, value in enumerate(out):
-        label = bisect.bisect(out_bnd, value) # giving label
-        out_class[i] = int(label - 1)
-    out_bnd = np.array(out_bnd)
+    # EWD_conversion
+    one_class = np.empty(len(one_flat))
+    for i, value in enumerate(one_flat):
+        label = bisect.bisect(bnd, value) # giving label
+        one_class[i] = int(label - 1)
+    bnd = np.array(bnd)
 
-    u, counts = np.unique(out_class, return_counts=True)
-    return out_class, out_bnd # out_class=(6930), out_bnd=(class_num+1)
+    u, counts = np.unique(one_class, return_counts=True)
+    print(f"count: {counts}")
+    print(f"bnd: {bnd}")
+    print(f"max, min: {max(one_flat)}, {min(one_flat)}")
+    return one_class, bnd # one_class=(6930), bnd=(class_num+1)
+
+def thailand_EWD(data, class_num=5, lat_grid=4, lon_grid=4):
+    mjjaso_thailand = data.copy() # data=(42, 165, 4, 4)
+    thailand_flat = mjjaso_thailand.reshape(42*165*lat_grid*lon_grid)
+    lim = max(abs(max(thailand_flat)), abs(min(thailand_flat)))
+    dx = 2*lim/class_num
+
+    bnd = []
+    bnd.append(-lim-1e-10) # min boundary must be a bit lower than real min
+    bnd.append(lim+1e-10) # max boundary must be a bit higher than real max
+
+    # even or odd
+    if class_num%2 == 0:
+        origin = 0
+        bnd.append(origin)
+    else:
+        origin = dx/2
+        bnd.append(origin)
+        bnd.append(-origin)
+
+    # EWD_bnd
+    if class_num == 4 or class_num == 5:
+        bnd.append(origin+dx)
+        bnd.append(-origin-dx)
+    elif class_num >= 6:
+        loop_num = int(class_num/2)
+        for i in range(loop_num-1):
+            bnd.append(origin+dx*(i+1))
+            bnd.append(-origin-dx*(i+1))
+    bnd = np.sort(bnd)
+
+    # EWD_conversion
+    thailand_class = np.empty(mjjaso_thailand.shape)
+    for lat in  range(lat_grid):
+        for lon in range(lon_grid):
+            grid = mjjaso_thailand[:,:,lat,lon].reshape(42*165)
+            grid_class = np.empty(len(grid))
+            for i, value in enumerate(grid):
+                label = bisect.bisect(bnd, value) # giving label
+                grid_class[i] = int(label - 1)
+            grid_class = grid_class.reshape(42, 165)
+            thailand_class[:, :, lat, lon] = grid_class
+    bnd = np.array(bnd)
+
+    u, counts = np.unique(thailand_class, return_counts=True)
+    print(f"count: {counts}")
+    print(f"bnd: {bnd}")
+    print(f"max, min: {max(thailand_flat)}, {min(thailand_flat)}")
+    return thailand_class, bnd # thailand_class=(6930), bnd=(class_num+1)
 
 def draw_disc(data, bnd_list):
     """
@@ -184,6 +233,7 @@ def show_class(image, class_num=5, lat_grid=4, lon_grid=4):
     ax.coastlines()
     mat = ax.matshow(image, origin='upper', extent=img_extent, transform=projection, norm=norm, cmap=cmap)
     cbar = fig.colorbar(mat, ax=ax, extend='both', ticks=ticks, spacing='proportional', orientation='vertical')
+
     if class_num == 5:
         cbar.ax.set_yticklabels(['low', 'mid-low', 'normal', 'mid-high', 'high'])
     elif class_num == 10:
@@ -196,7 +246,6 @@ def show_class(image, class_num=5, lat_grid=4, lon_grid=4):
             for j, lon in enumerate(lon_lst):
                 ax.text(lon, lat, image[i, j], 
                         ha="center", va="center", color='black', fontsize='15')
-        pass
     plt.show()
 
 
