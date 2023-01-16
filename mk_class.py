@@ -15,6 +15,7 @@ import matplotlib.colors as colors
 import cartopy.crs as ccrs
 
 def main():
+    # init
     save_flag = False
     class_num = 5
     discrete_mode = 'EWD'
@@ -26,6 +27,7 @@ def main():
     thailand_spath = workdir + f"/class/thailand/{discrete_mode}" \
                      f"/pr_5x5_coarse_std_MJJASO_thailand_{discrete_mode}_{class_num}.npy"
 
+    # calculate
     one = load(one_path) # one=(42, 165)
     thailand = load(thailand_path) # thailand=(42, 165, 4 , 4)
 
@@ -34,14 +36,14 @@ def main():
         one_class, one_bnd = one_EFD(one, class_num=class_num)
         print(f"one_bnd: {one_bnd}")
         save_npy(one_spath, one_class, save_flag=save_flag)
-        #draw_disc(one.reshape(42*165), one_bnd)
+        draw_disc(one.reshape(42*165), one_bnd)
 
         # thailand_EFD
         thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
         print(f"thailand_bnd: {thailand_bnd}")
         save_npy(thailand_spath, thailand_class, save_flag=save_flag)
-        #draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
-        #show_class(thailand_class[0,0,:,:], class_num=class_num)
+        draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
+        show_class(thailand_class[0,0,:,:], class_num=class_num)
 
     elif discrete_mode == 'EWD':
         # one_EFD
