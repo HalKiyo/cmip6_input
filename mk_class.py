@@ -17,7 +17,7 @@ import cartopy.crs as ccrs
 def main():
     # init
     save_flag = False
-    class_num = 5
+    class_num = 30
     discrete_mode = 'EWD'
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
@@ -153,6 +153,7 @@ def one_EWD(data, class_num=5):
     bnd = np.array(bnd)
 
     u, counts = np.unique(one_class, return_counts=True)
+    print(f"class_label: {u}")
     print(f"count: {counts}")
     print(f"bnd: {bnd}")
     print(f"max, min: {max(one_flat)}, {min(one_flat)}")
@@ -202,6 +203,7 @@ def thailand_EWD(data, class_num=5, lat_grid=4, lon_grid=4):
     bnd = np.array(bnd)
 
     u, counts = np.unique(thailand_class, return_counts=True)
+    print(f"class_label: {u}")
     print(f"count: {counts}")
     print(f"bnd: {bnd}")
     print(f"max, min: {max(thailand_flat)}, {min(thailand_flat)}")
