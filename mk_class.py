@@ -17,8 +17,8 @@ import cartopy.crs as ccrs
 def main():
     # init
     save_flag = False
-    class_num = 30
-    discrete_mode = 'EWD'
+    class_num = 10
+    discrete_mode = 'EFD'
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
     thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
@@ -79,7 +79,8 @@ def one_EFD(data, class_num=5):
         batch_sample = int(len(flat_sorted)/class_num)
 
     bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
-    bnd.append(flat_sorted[-1]+1e-10) # max boundary must be a bit higher than real max
+    bnd.append(flat_sorted[-1] + 1e-10) # max boundary must be a bit higher than real max
+    bnd[0] = bnd[0] - 1e10 # min boundary must be a bit higher than real min
     bnd = np.array(bnd)
     one_class = np.empty(len(one_flat))
     for i, value in enumerate(one_flat):
@@ -99,7 +100,8 @@ def thailand_EFD(data, class_num=5): # not-flattened input data required
         batch_sample = int(len(flat_sorted)/class_num)
 
     bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
-    bnd.append(flat_sorted[-1]+1e-10) # max boundary must be a bit higher than real max
+    bnd.append(flat_sorted[-1] + 1e-10) # max boundary must be a bit higher than real max
+    bnd[0] = bnd[0] -  1e-10 # min boundary must be a bit lower than real min
     bnd = np.array(bnd)
 
     # EFD_conversion
