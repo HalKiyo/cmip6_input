@@ -18,7 +18,7 @@ def main():
     # init
     save_flag = True
     class_num = 5
-    discrete_mode = 'EWD'
+    discrete_mode = 'EFD'
     lat_grid, lon_grid = 20, 20
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
