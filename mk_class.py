@@ -16,16 +16,18 @@ import cartopy.crs as ccrs
 
 def main():
     # init
-    save_flag = False
-    class_num = 10
-    discrete_mode = 'EFD'
+    save_flag = True
+    class_num = 5
+    discrete_mode = 'EWD'
+    lat_grid, lon_grid = 20, 20
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
-    thailand_path = workdir + '/continuous/thailand/5x5/pr_5x5_coarse_std_MJJASO_thailand.npy'
+    fname = 'pr_1x1_std_MJJASO_thailand'
+    thailand_path = workdir + f"/continuous/thailand/1x1/{fname}.npy"
     one_spath = workdir + f"/class/one/{discrete_mode}" \
                 f"/pr_1x1_std_MJJASO_one_{discrete_mode}_{class_num}.npy"
     thailand_spath = workdir + f"/class/thailand/{discrete_mode}" \
-                     f"/pr_5x5_coarse_std_MJJASO_thailand_{discrete_mode}_{class_num}.npy"
+                     f"/{fname}_{discrete_mode}_{class_num}.npy"
 
     # calculate
     one = load(one_path) # one=(42, 165)
@@ -39,11 +41,11 @@ def main():
         draw_disc(one.reshape(42*165), one_bnd)
 
         # thailand_EFD
-        thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num)
+        thailand_class, thailand_bnd = thailand_EFD(thailand, class_num=class_num, lat_grid=lat_grid, lon_grid=lon_grid)
         print(f"thailand_bnd: {thailand_bnd}")
         save_npy(thailand_spath, thailand_class, save_flag=save_flag)
-        draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
-        show_class(thailand_class[0,0,:,:], class_num=class_num)
+        draw_disc(thailand.reshape(42*165*lat_grid*lon_grid), thailand_bnd)
+        show_class(thailand_class[0,0,:,:], class_num=class_num, lat_grid=lat_grid, lon_grid=lon_grid)
 
     elif discrete_mode == 'EWD':
         # one_EFD
@@ -52,10 +54,10 @@ def main():
         draw_disc(one.reshape(42*165), one_bnd)
 
         #thailand_EWD
-        thailand_class, thailand_bnd = thailand_EWD(thailand, class_num=class_num)
+        thailand_class, thailand_bnd = thailand_EWD(thailand, class_num=class_num, lat_grid=lat_grid, lon_grid=lon_grid)
         save_npy(thailand_spath, thailand_class, save_flag=save_flag)
-        draw_disc(thailand.reshape(42*165*4*4), thailand_bnd)
-        show_class(thailand_class[0,0,:,:], class_num=class_num)
+        draw_disc(thailand.reshape(42*165*lat_grid*lon_grid), thailand_bnd)
+        show_class(thailand_class[0,0,:,:], class_num=class_num, lat_grid=lat_grid, lon_grid=lon_grid)
 
 def load(path):
     print(f"{path}: exist?=> {exists(path)}")
@@ -80,7 +82,7 @@ def one_EFD(data, class_num=5):
 
     bnd = [flat_sorted[i] for i in range(0, len(flat_sorted), batch_sample)]
     bnd.append(flat_sorted[-1] + 1e-10) # max boundary must be a bit higher than real max
-    bnd[0] = bnd[0] - 1e10 # min boundary must be a bit higher than real min
+    bnd[0] = bnd[0] - 1e-10 # min boundary must be a bit higher than real min
     bnd = np.array(bnd)
     one_class = np.empty(len(one_flat))
     for i, value in enumerate(one_flat):
@@ -89,10 +91,10 @@ def one_EFD(data, class_num=5):
     one_class.reshape(42, 165)
     return one_class, bnd
 
-def thailand_EFD(data, class_num=5): # not-flattened input data required
+def thailand_EFD(data, class_num=5, lat_grid=4, lon_grid=4): # not-flattened input data required
     # EFD_bnd
     mjjaso_thailand = data.copy() # data=(42, 165, 4, 4)
-    thailand_flat = mjjaso_thailand.reshape(42*165*4*4)
+    thailand_flat = mjjaso_thailand.reshape(42*165*lat_grid*lon_grid)
     flat_sorted = np.sort(thailand_flat)
     if len(flat_sorted)%class_num != 0:
         print('class_num is wrong')
@@ -106,8 +108,8 @@ def thailand_EFD(data, class_num=5): # not-flattened input data required
 
     # EFD_conversion
     thailand_class = np.empty(mjjaso_thailand.shape)
-    for lat in  range(4):
-        for lon in range(4):
+    for lat in  range(lat_grid):
+        for lon in range(lon_grid):
             grid = mjjaso_thailand[:,:,lat,lon].reshape(42*165)
             grid_class = np.empty(len(grid))
             for i, value in enumerate(grid):
@@ -219,7 +221,7 @@ def draw_disc(data, bnd_list):
     """
     fig = plt.figure()
     ax = plt.subplot()
-    ax.hist(data, bins=1000, alpha=.5, color='darkcyan')
+    ax.hist(data, bins=100, alpha=.5, color='darkcyan')
     for i in bnd_list:
         ax.axvline(i, ymin=0, ymax=len(data), alpha=.8, color='salmon')
     plt.show()
