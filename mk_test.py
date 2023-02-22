@@ -14,8 +14,8 @@ def load(inkey, outkey, indir, outdir):
     workdir = '/work/kajiyama/cnn/input'
     infile = workdir + indir + f"/{inkey}.npy"
     outfile = workdir + outdir + f"/{outkey}.npy"
-    predictors = np.load(infile)
-    predictant = np.load(outfile)
+    predictors = np.squeeze(np.load(infile))
+    predictant = np.squeeze(np.load(outfile))
     return predictors, predictant
 
 def make_test(inkey, outkey, indir, outdir, typ_flg='continuous', grid=20):
@@ -23,19 +23,26 @@ def make_test(inkey, outkey, indir, outdir, typ_flg='continuous', grid=20):
     save_predictors = f"{savedir}/{inkey}_1973-2014.npy"
     save_predictant = f"{savedir}/{outkey}_1973-2014.npy"
     predictors, predictant = load(inkey, outkey, indir, outdir)
-    x_test = np.empty((predictors.shape[0], 42, 24, 72))
+    x_test = np.empty((42, 24, 72))
     y_test = np.empty(42)
     if typ_flg == 'one':
+        print('one')
         for i in range(42):
-            x_test[:, i, :, :] = predictors[:, 0+i, (165-42)+i]
+            x_test[i, :, :] = predictors[0+i, (165-42)+i]
             y_test[i] = predictant[0+i, (165-42)+i]
     elif typ_flg == 'thailand':
+        print('thailand')
         y_test = np.empty((42, grid, grid))
         for i in range(42):
-            x_test[:, i, :, :] = predictors[:, 0+i, (165-42)+i]
-            y_test[i] = predictant[0+i, (165-42)+i, :, :]
-    np.save(save_predictors, x_test)
+            x_test[i, :, :] = predictors[0+i, (165-42)+i]
+            print(predictors[0+i, (165-42)+i])
+            exit()
+            y_test[i, :, :] = predictant[0+i, (165-42)+i, :, :]
+    np.save(save_predictors, np.squeeze(x_test))
     np.save(save_predictant, y_test)
+
+def make_train():
+    pass
 
 if __name__ == '__main__':
     try:
