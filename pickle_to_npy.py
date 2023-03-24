@@ -2,9 +2,9 @@ import pickle
 import numpy as np
 
 def main():
-    bnd_lst = ['pr'] # choose variable you want to store
-    for bnd in bnd_lst:
-        mk_newarr(bnd)
+    key_lst = ['mrso', 'pr', 'snc', 'tos', 'tsl'] # choose variable you want to store as much as you want as list object
+    for key in key_lst:
+        mk_newarr(key)
 
 def load(file):
     with open (file, 'rb')  as f:
@@ -12,8 +12,8 @@ def load(file):
     return data
 
 
-def mk_newarr(bnd):
-    variable = bnd 
+def mk_newarr(key):
+    variable = key
     workdir = '/work/kajiyama/preprocessed/cmip6/'
     savedir = f"/work/kajiyama/cnn/input/{variable}/"
 
