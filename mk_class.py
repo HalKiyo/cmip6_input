@@ -17,7 +17,7 @@ import cartopy.crs as ccrs
 def main():
     # init
     save_flag = True
-    class_num = 5
+    class_num = 30
     discrete_mode = 'EFD'
     lat_grid, lon_grid = 20, 20
     workdir = '/work/kajiyama/cnn/input/pr'
