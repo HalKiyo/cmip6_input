@@ -17,8 +17,8 @@ import cartopy.crs as ccrs
 def main():
     # init
     save_flag = True
-    class_num = 30
-    discrete_mode = 'EFD'
+    class_num = 5
+    discrete_mode = 'EWD'
     lat_grid, lon_grid = 20, 20
     workdir = '/work/kajiyama/cnn/input/pr'
     one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
