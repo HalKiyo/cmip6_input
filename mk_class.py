@@ -14,18 +14,35 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import cartopy.crs as ccrs
 
-def main():
+def exec_resolution_discrete_class():
+    class_list = [5, 10, 30]
+    discrete_list = ['EFD', 'EWD']
+    resolution_list = ['1x1', '5x5']
+    for c in class_list:
+        for d in discrete_list:
+            for r in resolution_list:
+                main(class_num=c, discrete_mode=d, resolution=r)
+
+def main(class_num=5, discrete_mode='EFD', resolution='1x1'):
     # init
     save_flag = True
-    class_num = 5
-    discrete_mode = 'EWD'
-    lat_grid, lon_grid = 20, 20
+    class_num = class_num
+    discrete_mode = 'EFD'
+    resolution = '1x1'
+    if resolution == '1x1':
+        lat_grid, lon_grid = 20, 20
+        key = '1x1'
+    elif resolution == '5x5':
+        lat_grid, lon_grid = 4, 4
+        key = '5x5_coarse'
+
+    # path
     workdir = '/work/kajiyama/cnn/input/pr'
-    one_path = workdir + '/continuous/one/1x1/pr_1x1_std_MJJASO_one.npy'
-    fname = 'pr_1x1_std_MJJASO_thailand'
-    thailand_path = workdir + f"/continuous/thailand/1x1/{fname}.npy"
+    one_path = workdir + f"/continuous/one/{resolution}/pr_{key}_std_MJJASO_one.npy"
+    fname = f"pr_{key}_std_MJJASO_thailand"
+    thailand_path = workdir + f"/continuous/thailand/{resolution}/{fname}.npy"
     one_spath = workdir + f"/class/one/{discrete_mode}" \
-                f"/pr_1x1_std_MJJASO_one_{discrete_mode}_{class_num}.npy"
+                f"/pr_{key}_std_MJJASO_one_{discrete_mode}_{class_num}.npy"
     thailand_spath = workdir + f"/class/thailand/{discrete_mode}" \
                      f"/{fname}_{discrete_mode}_{class_num}.npy"
 
@@ -258,5 +275,6 @@ def show_class(image, class_num=5, lat_grid=4, lon_grid=4):
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    exec_resolution_discrete_class()
 
