@@ -27,8 +27,8 @@ def main(class_num=5, discrete_mode='EFD', resolution='1x1'):
     # init
     save_flag = True
     class_num = class_num
-    discrete_mode = 'EFD'
-    resolution = '1x1'
+    discrete_mode = discrete_mode
+    resolution = resolution
     if resolution == '1x1':
         lat_grid, lon_grid = 20, 20
         key = '1x1'
