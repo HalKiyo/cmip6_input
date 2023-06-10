@@ -25,7 +25,7 @@ def exec_resolution_discrete_class():
 
 def main(class_num=5, discrete_mode='EFD', resolution='1x1'):
     # init
-    save_flag = True
+    save_flag = False
     class_num = class_num
     discrete_mode = discrete_mode
     resolution = resolution
@@ -75,6 +75,8 @@ def main(class_num=5, discrete_mode='EFD', resolution='1x1'):
         save_npy(thailand_spath, thailand_class, save_flag=save_flag)
         draw_disc(thailand.reshape(42*165*lat_grid*lon_grid), thailand_bnd)
         show_class(thailand_class[0,0,:,:], class_num=class_num, lat_grid=lat_grid, lon_grid=lon_grid)
+
+    plt.show()
 
 def load(path):
     print(f"{path}: exist?=> {exists(path)}")
@@ -241,7 +243,7 @@ def draw_disc(data, bnd_list):
     ax.hist(data, bins=100, alpha=.5, color='darkcyan')
     for i in bnd_list:
         ax.axvline(i, ymin=0, ymax=len(data), alpha=.8, color='salmon')
-    plt.show()
+    plt.show(block=False)
 
 def show_class(image, class_num=5, lat_grid=4, lon_grid=4):
     cmap = plt.cm.get_cmap('BrBG', class_num)
@@ -271,10 +273,10 @@ def show_class(image, class_num=5, lat_grid=4, lon_grid=4):
             for j, lon in enumerate(lon_lst):
                 ax.text(lon, lat, image[i, j], 
                         ha="center", va="center", color='black', fontsize='15')
-    plt.show()
+    plt.show(block=False)
 
 
 if __name__ == '__main__':
-    #main()
-    exec_resolution_discrete_class()
+    main()
+    #exec_resolution_discrete_class()
 
