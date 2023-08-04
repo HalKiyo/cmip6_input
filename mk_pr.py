@@ -70,7 +70,7 @@ def pr_1x1():
                         out = np.mean(thailand, axis=2)
 
                     elif space == 'monsoon':
-                        monsoon = loaded[:, :, mon_arr[i,0]:mon_arr[i,1],  ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[:]]
+                        monsoon = loaded[:, :, mon_arr[i,0]:mon_arr[i,1],  ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[1]]
                         out = np.mean(monsoon, axis=2)
 
                     elif space == 'world':
@@ -117,7 +117,7 @@ def pr_5x5():
                         out = np.mean(thailand, axis=2)
 
                     elif space == 'monsoon':
-                        monsoon = loaded[:, :, mon_arr[i,0]:mon_arr[i,1],  ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[:]]
+                        monsoon = loaded[:, :, mon_arr[i,0]:mon_arr[i,1],  ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[1]]
                         out = np.mean(monsoon, axis=2)
 
                     elif space == 'world':
