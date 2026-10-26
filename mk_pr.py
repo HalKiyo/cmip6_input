@@ -1,12 +1,37 @@
-# example = 'pr_5x5_std_MJJ_thailand_ ***|*** mrso_snc_tos_tsl.npy' 
+# example = 'pr_5x5_std_MJJ_thailand_ ***|*** mrso_snc_tos_tsl.npy'
 # boxplot: x = year, y= diviation of monthly rainfall
 # boxplot: close up only 1850, 1900, 1950, 2000
 
+import sys
+
 import numpy as np
+
+WORKDIR = '/work/kajiyama/cnn/input/pr'
+VARIABLE = 'pr'
+LEAD_LST = [1, 3, 6]
+SPACE_LST = ['monsoon']
+#SPACE_LST = ['one', 'thailand', 'world']
+MODEL_NUM = 42
+YEAR_NUM = 165
+
+# Region bounds in 5x5 grid units. They are multiplied by the number of
+# 1x1 cells per 5x5 cell (5) for the 1x1 data.
+LAT_LST = [7, 11]  # 5-25N
+LON_LST = [18, 22]  # 90-110E
+MA_LAT = [1, 15]  # 15S-55N
+MA_LON = [12, 30]  # 60-150E
+
+# resolution: (grid scale, input forms)
+RES_CONFIG = {
+    '1x1': (5, ['raw', 'anom', 'std']),
+    '5x5': (1, ['coarse', 'coarse_anom', 'coarse_std']),
+}
+
 
 def main():
     pr_5x5()
     pr_1x1()
+
 
 def lead_cnd(leadtime):
     if leadtime == 1:
@@ -20,114 +45,57 @@ def lead_cnd(leadtime):
         llst = ['MJJASO']
     else:
         print('error of lead_cnd')
-        exit()
+        sys.exit()
     return mon_arr, llst
 
-def space_cnd(leadtime, inp):
-    if leadtime == 1:
-        out = np.mean(inp, axis=2)
-    elif leadtime == 3 or leadtime==6:
-        out = np.mean(inp, axis=2)
-    else:
-        print('error of space_cnd')
-        exit()
-    return out
 
-def pr_1x1():
-    workdir = '/work/kajiyama/cnn/input/pr'
-
-    resolution = '1x1'
-    lat_lst = [7*5, 11*5] # 5-25N
-    lon_lst = [18*5, 22*5] # 90-110E
-    ma_lat = [1*5, 15*5] # 15S-55N
-    ma_lon = [12*5, 30*5] # 60-150E
-    form_lst = ['raw', 'anom', 'std']
-    msk = 20
-
-    variable = 'pr'
-    lead_lst = [1, 3, 6]
-    space_lst = ['monsoon']
-    #space_lst = ['one', 'thailand', 'world']
-    model_num = 42
-    year_num = 165
+def make_pr(resolution):
+    scale, form_lst = RES_CONFIG[resolution]
+    lat_lst = [v*scale for v in LAT_LST]
+    lon_lst = [v*scale for v in LON_LST]
+    ma_lat = [v*scale for v in MA_LAT]
+    ma_lon = [v*scale for v in MA_LON]
+    msk = 4*scale  # number of grid cells per side of the thailand box
 
     for form in form_lst:
-        ifile = f"{workdir}/main/{variable}_{form}.npy"
+        ifile = f"{WORKDIR}/main/{VARIABLE}_{form}.npy"
         loaded = np.load(ifile)
         print(f"{ifile} is loaded")
 
-        for leadtime in lead_lst:
+        for leadtime in LEAD_LST:
             mon_arr, llst = lead_cnd(leadtime)
             for i, months in enumerate(llst):
-                for space in space_lst:
+                m0, m1 = mon_arr[i, 0], mon_arr[i, 1]
+                for space in SPACE_LST:
 
                     if space == 'one':
-                        one = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(one.reshape(model_num, year_num, leadtime*msk*msk), axis=2)
+                        one = loaded[:, :, m0:m1, lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
+                        out = np.mean(one.reshape(MODEL_NUM, YEAR_NUM, leadtime*msk*msk), axis=2)
 
                     elif space == 'thailand':
-                        thailand = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
+                        thailand = loaded[:, :, m0:m1, lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
                         out = np.mean(thailand, axis=2)
 
                     elif space == 'monsoon':
-                        monsoon = loaded[:, :, mon_arr[i,0]:mon_arr[i,1],  ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[1]]
+                        monsoon = loaded[:, :, m0:m1, ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[1]]
                         out = np.mean(monsoon, axis=2)
 
                     elif space == 'world':
-                        world = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], :, :]
+                        world = loaded[:, :, m0:m1, :, :]
                         out = np.mean(world, axis=2)
 
-                    ofile = f"{workdir}/{variable}_{resolution}_{form}_{months}_{space}.npy"
+                    ofile = f"{WORKDIR}/{VARIABLE}_{resolution}_{form}_{months}_{space}.npy"
                     np.save(ofile, out)
                     print(f"{ofile} is saved {out.shape}")
+
+
+def pr_1x1():
+    make_pr('1x1')
+
 
 def pr_5x5():
-    workdir = '/work/kajiyama/cnn/input/pr'
+    make_pr('5x5')
 
-    resolution = '5x5'
-    lat_lst = [7, 11] # 5-25N
-    lon_lst = [18, 22] # 90-110E
-    ma_lat = [1, 15] # 15S-55N
-    ma_lon = [12, 30] # 60-150E
-    form_lst = ['coarse', 'coarse_anom', 'coarse_std']
-    msk = 4
-
-    variable = 'pr'
-    lead_lst = [1, 3, 6]
-    space_lst = ['monsoon']
-    #space_lst = ['one', 'thailand', 'world']
-    model_num = 42
-    year_num = 165
-
-    for form in form_lst:
-        ifile = f"{workdir}/main/{variable}_{form}.npy"
-        loaded = np.load(ifile)
-
-        for leadtime in lead_lst:
-            mon_arr, llst = lead_cnd(leadtime)
-            for i, months in enumerate(llst):
-                for space in space_lst:
-
-                    if space == 'one':
-                        one = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(one.reshape(model_num, year_num, leadtime*msk*msk), axis=2)
-
-                    elif space == 'thailand':
-                        thailand = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], lat_lst[0]:lat_lst[1], lon_lst[0]:lon_lst[1]]
-                        out = np.mean(thailand, axis=2)
-
-                    elif space == 'monsoon':
-                        monsoon = loaded[:, :, mon_arr[i,0]:mon_arr[i,1],  ma_lat[0]:ma_lat[1], ma_lon[0]:ma_lon[1]]
-                        out = np.mean(monsoon, axis=2)
-
-                    elif space == 'world':
-                        world = loaded[:, :, mon_arr[i,0]:mon_arr[i,1], :, :]
-                        out = np.mean(world, axis=2)
-
-                    ofile = f"{workdir}/{variable}_{resolution}_{form}_{months}_{space}.npy"
-                    np.save(ofile, out)
-                    print(f"{ofile} is saved {out.shape}")
 
 if __name__ == '__main__':
     main()
-

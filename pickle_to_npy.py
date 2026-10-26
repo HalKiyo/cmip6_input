@@ -1,105 +1,68 @@
 import pickle
+import sys
+
 import numpy as np
+
+WORKDIR = '/work/kajiyama/preprocessed/cmip6/'
+SAVEDIR_FMT = '/work/kajiyama/cnn/input/{variable}/'
+
+# 42 CMIP6 models, in the order of the model axis of every output array
+MODELS = [
+    'AWI-ESM-1-1-LR', 'BCC-CSM2-MR', 'BCC-ESM1', 'CanESM5', 'CanESM5-CanOE',
+    'CAS-ESM2-0', 'CESM2', 'CESM2-FV2', 'CESM2-WACCM', 'CMCC-CM2-HR4',
+    'CMCC-CM2-SR5', 'CMCC-ESM2', 'CNRM-CM6-1', 'CNRM-CM6-1-HR', 'CNRM-ESM2-1',
+    'EC-Earth3', 'EC-Earth3-Veg-LR', 'FGOALS-f3-L', 'FGOALS-g3', 'GISS-E2-1-G',
+    'GISS-E2-1-G-CC', 'GISS-E2-1-H', 'GISS-E2-2-G', 'GISS-E2-2-H', 'GISS-E3-G',
+    'HadGEM3-GC31-LL', 'HadGEM3-GC31-MM', 'ICON-ESM-LR', 'IPSL-CM5A2-INCA', 'IPSL-CM6A-LR',
+    'IPSL-CM6A-LR-INCA', 'MIROC6', 'MIROC-ES2H', 'MIROC-ES2L', 'MPI-ESM-1-2-HAM',
+    'MPI-ESM1-2-HR', 'MPI-ESM1-2-LR', 'MRI-ESM2-0', 'NorESM2-MM', 'TaiESM1',
+    'UKESM1-0-LL', 'UKESM1-1-LL',
+]
+
+# pickle key suffix and the per model shape of the stored array
+FIELDS = [
+    ('raw', (165, 12, 120, 360)),
+    ('clim', (12, 120, 360)),
+    ('variance', (12, 120, 360)),
+    ('anom', (165, 12, 120, 360)),
+    ('std', (165, 12, 120, 360)),
+    ('coarse', (165, 12, 24, 72)),
+    ('coarse_clim', (12, 24, 72)),
+    ('coarse_variance', (12, 24, 72)),
+    ('coarse_anom', (165, 12, 24, 72)),
+    ('coarse_std', (165, 12, 24, 72)),
+]
+
+# accepted (val.shape[0], val.shape[1]) and the shape the value is reshaped to
+# (None keeps it as is)
+RESHAPE = {
+    (1980, 120): (165, 12, 120, 360),
+    (12, 120): None,
+    (1980, 24): (165, 12, 24, 72),
+    (12, 24): None,
+}
+
 
 def main():
     key_lst = ['mrso', 'pr', 'snc', 'tos', 'tsl'] # choose variable you want to store as much as you want as list object
     for key in key_lst:
         mk_newarr(key)
 
+
 def load(file):
-    with open (file, 'rb')  as f:
+    with open(file, 'rb') as f:
         data = pickle.load(f)
     return data
 
 
 def mk_newarr(key):
     variable = key
-    workdir = '/work/kajiyama/preprocessed/cmip6/'
-    savedir = f"/work/kajiyama/cnn/input/{variable}/"
+    savedir = SAVEDIR_FMT.format(variable=variable)
 
-    AWI = f"{workdir}AWI-ESM-1-1-LR/{variable}_AWI-ESM-1-1-LR.pickle"
-    BMR = f"{workdir}BCC-CSM2-MR/{variable}_BCC-CSM2-MR.pickle"
-    BM1 = f"{workdir}BCC-ESM1/{variable}_BCC-ESM1.pickle"
-    Ca5 = f"{workdir}CanESM5/{variable}_CanESM5.pickle"
-    CaE = f"{workdir}CanESM5-CanOE/{variable}_CanESM5-CanOE.pickle"
-    CAS = f"{workdir}CAS-ESM2-0/{variable}_CAS-ESM2-0.pickle"
-    CE2 = f"{workdir}CESM2/{variable}_CESM2.pickle"
-    CV2 = f"{workdir}CESM2-FV2/{variable}_CESM2-FV2.pickle"
-    CCM = f"{workdir}CESM2-WACCM/{variable}_CESM2-WACCM.pickle"
-    CR4 = f"{workdir}CMCC-CM2-HR4/{variable}_CMCC-CM2-HR4.pickle"
-    CR5 = f"{workdir}CMCC-CM2-SR5/{variable}_CMCC-CM2-SR5.pickle"
-    CM2 = f"{workdir}CMCC-ESM2/{variable}_CMCC-ESM2.pickle"
-    CN1 = f"{workdir}CNRM-CM6-1/{variable}_CNRM-CM6-1.pickle"
-    CNR = f"{workdir}CNRM-CM6-1-HR/{variable}_CNRM-CM6-1-HR.pickle"
-    CN2 = f"{workdir}CNRM-ESM2-1/{variable}_CNRM-ESM2-1.pickle"
-    EC3 = f"{workdir}EC-Earth3/{variable}_EC-Earth3.pickle"
-    ECR = f"{workdir}EC-Earth3-Veg-LR/{variable}_EC-Earth3-Veg-LR.pickle"
-    FGL = f"{workdir}FGOALS-f3-L/{variable}_FGOALS-f3-L.pickle"
-    FG3 = f"{workdir}FGOALS-g3/{variable}_FGOALS-g3.pickle"
-    GIG = f"{workdir}GISS-E2-1-G/{variable}_GISS-E2-1-G.pickle"
-    GIC = f"{workdir}GISS-E2-1-G-CC/{variable}_GISS-E2-1-G-CC.pickle"
-    GIH = f"{workdir}GISS-E2-1-H/{variable}_GISS-E2-1-H.pickle"
-    G2G = f"{workdir}GISS-E2-2-G/{variable}_GISS-E2-2-G.pickle"
-    G2H = f"{workdir}GISS-E2-2-H/{variable}_GISS-E2-2-H.pickle"
-    G3G = f"{workdir}GISS-E3-G/{variable}_GISS-E3-G.pickle"
-    HLL = f"{workdir}HadGEM3-GC31-LL/{variable}_HadGEM3-GC31-LL.pickle"
-    HMM = f"{workdir}HadGEM3-GC31-MM/{variable}_HadGEM3-GC31-MM.pickle"
-    ICR = f"{workdir}ICON-ESM-LR/{variable}_ICON-ESM-LR.pickle"
-    I5A = f"{workdir}IPSL-CM5A2-INCA/{variable}_IPSL-CM5A2-INCA.pickle"
-    I6R = f"{workdir}IPSL-CM6A-LR/{variable}_IPSL-CM6A-LR.pickle"
-    I6A = f"{workdir}IPSL-CM6A-LR-INCA/{variable}_IPSL-CM6A-LR-INCA.pickle"
-    MC6 = f"{workdir}MIROC6/{variable}_MIROC6.pickle"
-    M2H = f"{workdir}MIROC-ES2H/{variable}_MIROC-ES2H.pickle"
-    M2L = f"{workdir}MIROC-ES2L/{variable}_MIROC-ES2L.pickle"
-    MPM = f"{workdir}MPI-ESM-1-2-HAM/{variable}_MPI-ESM-1-2-HAM.pickle"
-    MPH = f"{workdir}MPI-ESM1-2-HR/{variable}_MPI-ESM1-2-HR.pickle"
-    MPL = f"{workdir}MPI-ESM1-2-LR/{variable}_MPI-ESM1-2-LR.pickle"
-    MRI = f"{workdir}MRI-ESM2-0/{variable}_MRI-ESM2-0.pickle"
-    NMM = f"{workdir}NorESM2-MM/{variable}_NorESM2-MM.pickle"
-    Tai = f"{workdir}TaiESM1/{variable}_TaiESM1.pickle"
-    U0L = f"{workdir}UKESM1-0-LL/{variable}_UKESM1-0-LL.pickle"
-    U1L = f"{workdir}UKESM1-1-LL/{variable}_UKESM1-1-LL.pickle"
-
-    model_lst = [AWI, BMR, BM1, Ca5, CaE, CAS, CE2, CV2, CCM, CR4, CR5, CM2, CN1, CNR, 
-                 CN2, EC3, ECR, FGL, FG3, GIG, GIC, GIH, G2G, G2H, G3G, HLL, HMM, ICR, 
-                 I5A, I6R, I6A, MC6, M2H, M2L, MPM, MPH, MPL, MRI, NMM, Tai, U0L, U1L]
-
-    variable_lst = [f"{variable}_raw", f"{variable}_clim", f"{variable}_variance",
-                    f"{variable}_anom", f"{variable}_std",
-                    f"{variable}_coarse", f"{variable}_coarse_clim", f"{variable}_coarse_variance",
-                    f"{variable}_coarse_anom", f"{variable}_coarse_std"]
-
-    intgrtd_raw =              np.empty((len(model_lst), 165, 12, 120, 360))
-    intgrtd_clim =             np.empty((len(model_lst), 12, 120, 360))
-    intgrtd_variance =         np.empty((len(model_lst), 12, 120, 360))
-    intgrtd_anom =             np.empty((len(model_lst), 165, 12, 120, 360))
-    intgrtd_std =              np.empty((len(model_lst), 165, 12, 120, 360))
-    intgrtd_coarse =           np.empty((len(model_lst), 165, 12, 24, 72))
-    intgrtd_coarse_clim =      np.empty((len(model_lst), 12, 24, 72))
-    intgrtd_coarse_variance =  np.empty((len(model_lst), 12, 24, 72))
-    intgrtd_coarse_anom =      np.empty((len(model_lst), 165, 12, 24, 72))
-    intgrtd_coarse_std =       np.empty((len(model_lst), 165, 12, 24, 72))
-
-    arr_lst = [intgrtd_raw, intgrtd_clim, intgrtd_variance, 
-               intgrtd_anom, intgrtd_std, 
-               intgrtd_coarse, intgrtd_coarse_clim, intgrtd_coarse_variance,
-               intgrtd_coarse_anom, intgrtd_coarse_std]
-
-    raw_path =             f"{savedir}{variable}_raw.npy"
-    clim_path =            f"{savedir}{variable}_clim.npy"
-    variance_path =        f"{savedir}{variable}_variance.npy"
-    anom_path =            f"{savedir}{variable}_anom.npy"
-    std_path =             f"{savedir}{variable}_std.npy"
-    coarse_path =          f"{savedir}{variable}_coarse.npy"
-    coarse_clim_path =     f"{savedir}{variable}_coarse_clim.npy"
-    coarse_variance_path = f"{savedir}{variable}_coarse_variance.npy"
-    coarse_anom_path =     f"{savedir}{variable}_coarse_anom.npy"
-    coarse_std_path =      f"{savedir}{variable}_coarse_std.npy"
-
-    sfile_lst = [raw_path, clim_path, variance_path,
-                 anom_path, std_path,
-                 coarse_path, coarse_clim_path, coarse_variance_path,
-                 coarse_anom_path, coarse_std_path]
+    model_lst = [f"{WORKDIR}{m}/{variable}_{m}.pickle" for m in MODELS]
+    variable_lst = [f"{variable}_{suffix}" for suffix, _ in FIELDS]
+    arr_lst = [np.empty((len(model_lst),) + shape) for _, shape in FIELDS]
+    sfile_lst = [f"{savedir}{valname}.npy" for valname in variable_lst]
 
     for i, modname in enumerate(model_lst):
         pkl = load(modname)
@@ -108,25 +71,13 @@ def mk_newarr(key):
         for j, valname in enumerate(variable_lst):
             val = pkl[valname]
 
-            if val.shape[0] == 1980 and val.shape[1] == 120:
-                intgrtd = val.reshape(165, 12, 120, 360)
-                arr_lst[j][i,:,:,:,:] = intgrtd
-                print(f"{valname} is stored {val.shape}")
-            elif val.shape[0] == 12 and val.shape[1] == 120:
-                intgrtd = val
-                arr_lst[j][i,:,:,:] = intgrtd
-                print(f"{valname} is stored {val.shape}")
-            elif val.shape[0] == 1980 and val.shape[1] == 24:
-                intgrtd = val.reshape(165, 12, 24, 72)
-                arr_lst[j][i,:,:,:] = intgrtd
-                print(f"{valname} is stored {val.shape}")
-            elif val.shape[0] == 12 and val.shape[1] == 24:
-                intgrtd = val
-                arr_lst[j][i,:,:,:] = intgrtd
-                print(f"{valname} is stored {val.shape}")
-            else:
+            shape_key = (val.shape[0], val.shape[1])
+            if shape_key not in RESHAPE:
                 print(f"!!!ERROR!!! val.shape has wrong shape{val.shape}")
-                exit()
+                sys.exit()
+            new_shape = RESHAPE[shape_key]
+            arr_lst[j][i] = val if new_shape is None else val.reshape(new_shape)
+            print(f"{valname} is stored {val.shape}")
 
     for k, sfile in enumerate(sfile_lst):
         np.save(sfile, arr_lst[k])
@@ -135,4 +86,3 @@ def mk_newarr(key):
 
 if __name__ == '__main__':
     main()
-

@@ -1,6 +1,12 @@
 # 1873-2014 42models have responsible year->(4, 42, 24, 72), (42)
 import numpy as np
 
+WORKDIR = '/work/kajiyama/cnn/input'
+SAVEDIR = '/work/kajiyama/cnn/test'
+MODEL_NUM = 42
+YEAR_NUM = 165
+
+
 def main():
     indir = '/predictors/coarse_std'
     tors = 'predictors_coarse_std_Apr_o'
@@ -10,58 +16,55 @@ def main():
     grid = 20
     test_selection(tors, tant, indir, outdir, typ_flg=typ_flg, grid=grid)
 
+
 def load(inkey, outkey, indir, outdir):
-    workdir = '/work/kajiyama/cnn/input'
-    infile = workdir + indir + f"/{inkey}.npy"
-    outfile = workdir + outdir + f"/{outkey}.npy"
+    infile = WORKDIR + indir + f"/{inkey}.npy"
+    outfile = WORKDIR + outdir + f"/{outkey}.npy"
     predictors = np.squeeze(np.load(infile))
     predictant = np.squeeze(np.load(outfile))
     return predictors, predictant
 
+
+def test_mask():
+    """Boolean (model, year) mask, True for the test sample of each model.
+
+    Model i is tested on year index i + (YEAR_NUM - MODEL_NUM), that is one
+    year from 1973 to 2014 per model. Boolean indexing walks the mask in the
+    same row major order as the original nested loops.
+    """
+    mask = np.zeros((MODEL_NUM, YEAR_NUM), dtype=bool)
+    mask[np.arange(MODEL_NUM), np.arange(MODEL_NUM) + (YEAR_NUM - MODEL_NUM)] = True
+    return mask
+
+
 def test_selection(inkey, outkey, indir, outdir, typ_flg='continuous', grid=20):
-    savedir = f"/work/kajiyama/cnn/test"
-    save_predictors = f"{savedir}/val/val_{inkey}_1973-2014.npy"
-    save_predictant = f"{savedir}/val/val_{outkey}_1973-2014.npy"
-    train_predictors = f"{savedir}/train/train_{inkey}_1973-2014.npy"
-    train_predictant = f"{savedir}/train/train_{outkey}_1973-2014.npy"
+    save_predictors = f"{SAVEDIR}/val/val_{inkey}_1973-2014.npy"
+    save_predictant = f"{SAVEDIR}/val/val_{outkey}_1973-2014.npy"
+    train_predictors = f"{SAVEDIR}/train/train_{inkey}_1973-2014.npy"
+    train_predictant = f"{SAVEDIR}/train/train_{outkey}_1973-2014.npy"
 
     predictors, predictant = load(inkey, outkey, indir, outdir)
 
-    x_train = np.empty((42*165 - 42, 24, 72))
-    y_train = np.empty(165*42 - 42)
+    x_train = np.empty((MODEL_NUM*YEAR_NUM - MODEL_NUM, 24, 72))
+    y_train = np.empty(YEAR_NUM*MODEL_NUM - MODEL_NUM)
 
-    x_test = np.empty((42, 24, 72))
-    y_test = np.empty(42)
+    x_test = np.empty((MODEL_NUM, 24, 72))
+    y_test = np.empty(MODEL_NUM)
 
-    if typ_flg == 'one':
-        print('one')
-        index = 0
-        for i in range(42):
-            for j in range(165):
-                if i == (j-(165-42)):
-                    x_test[i, :, :] = predictors[i, j]
-                    y_test[i] = predictant[i, j]
-                else:
-                    x_train[index, :, :] = predictors[i, j]
-                    y_train[index] = predictant[i, j]
-                    index += 1
-                    print(index)
-
-    elif typ_flg == 'thailand':
-        print('thailand')
-        index = 0
-        y_train = np.empty((165*42 - 42, grid, grid))
-        y_test = np.empty((42, grid, grid))
-        for i in range(42):
-            for j in range(165):
-                if i == (j-(165-42)):
-                    x_test[i, :, :] = predictors[i, j]
-                    y_test[i, :, :] = predictant[i, j, :, :]
-                else:
-                    x_train[index, :, :] = predictors[i, j]
-                    y_train[index, :, :] = predictant[i, j, :, :]
-                    index += 1
-                    print(index)
+    if typ_flg in ('one', 'thailand'):
+        print(typ_flg)
+        if typ_flg == 'thailand':
+            y_train = np.empty((YEAR_NUM*MODEL_NUM - MODEL_NUM, grid, grid))
+            y_test = np.empty((MODEL_NUM, grid, grid))
+        mask = test_mask()
+        # predictors (and predictant) may have more models or years than used here
+        predictors = predictors[:MODEL_NUM, :YEAR_NUM]
+        predictant = predictant[:MODEL_NUM, :YEAR_NUM]
+        x_test[...] = predictors[mask]
+        y_test[...] = predictant[mask]
+        x_train[...] = predictors[~mask]
+        y_train[...] = predictant[~mask]
+        print(len(x_train))
 
     np.save(train_predictors, np.squeeze(x_train))
     np.save(train_predictant, y_train)
@@ -69,8 +72,10 @@ def test_selection(inkey, outkey, indir, outdir, typ_flg='continuous', grid=20):
     np.save(save_predictors, np.squeeze(x_test))
     np.save(save_predictant, y_test)
 
+
 def test_random():
     pass
+
 
 if __name__ == '__main__':
     try:
@@ -79,4 +84,3 @@ if __name__ == '__main__':
     except Exception as e:
         print('[\N{cross mark}]')
         print(e)
-
